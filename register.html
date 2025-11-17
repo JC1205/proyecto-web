@@ -1,21 +1,59 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backoffice - Registro</title>
-    <link rel="stylesheet" href="styles.css">
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Register - Backoffice</title>
+        <link rel="stylesheet" href="styles.css">
     </head>
-<body>
-    <div class="container">
-        <h1>Crear Cuenta</h1>
-        <form action="login.html" method="get">
-        <input type="text" placeholder="Nombre de usuario" required>
-        <input type="email" placeholder="Correo electrónico" required>
-        <input type="password" placeholder="Contraseña" required>
-        <button type="submit">Registrarme</button>
+    <body>
+    <div class="auth-container">
+        <h1>Registrar nuevo usuario</h1>
+        <form id="registerForm">
+        <label>Nombre (mín 6 caracteres)</label>
+        <input type="text" id="name" required minlength="6" />
+        <label>Email</label>
+        <input type="email" id="email" required />
+        <label>ITSon ID (6 dígitos)</label>
+        <input type="text" id="itsonId" required pattern="[0-9]{6}" />
+        <label>Contraseña (mín 6)</label>
+        <input type="password" id="password" required minlength="6" />
+        <button type="submit">Registrar</button>
         </form>
-        <p style="margin-top: 1rem;">¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a></p>
+        <p>¿Ya tienes cuenta? <a href="login.html">Iniciar sesión</a></p>
+        <div id="msg"></div>
     </div>
-</body>
-</html>
+
+    <script>
+    const API_BASE = "https://portfolio-api-three-black.vercel.app/api/v1";
+
+    function showMsg(text, isError = false) {
+        const d = document.getElementById('msg');
+        d.textContent = text;
+        d.style.color = isError ? 'crimson' : 'green';
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const itsonId = document.getElementById('itsonId').value.trim();
+        const password = document.getElementById('password').value;
+
+        try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, itsonId, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Error en registro');
+        showMsg('Registro exitoso. Redirigiendo al login...');
+        setTimeout(() => location.href = 'login.html', 1000);
+        } catch (err) {
+        showMsg(err.message, true);
+        }
+    });
+    </script>
+    </body>
+    </html>
