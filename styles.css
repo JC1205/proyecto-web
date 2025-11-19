@@ -261,6 +261,30 @@ form textarea:focus {
   font-size: 14px;
 }
 
+.project-images {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+}
+
+.project-images img {
+    max-width: 200px;
+    max-height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.project-card a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.project-card a:hover {
+    text-decoration: underline;
+}
+
 
 @media (max-width: 900px) {
   .container {

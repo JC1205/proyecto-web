@@ -1,24 +1,24 @@
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>Register - Backoffice</title>
-        <link rel="stylesheet" href="styles.css">
-    </head>
-    <body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Register - Backoffice</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
     <div class="auth-container">
         <h1>Registrar nuevo usuario</h1>
         <form id="registerForm">
-        <label>Nombre (mín 6 caracteres)</label>
-        <input type="text" id="name" required minlength="6" />
-        <label>Email</label>
-        <input type="email" id="email" required />
-        <label>ITSon ID (6 dígitos)</label>
-        <input type="text" id="itsonId" required pattern="[0-9]{6}" />
-        <label>Contraseña (mín 6)</label>
-        <input type="password" id="password" required minlength="6" />
-        <button type="submit">Registrar</button>
+            <label>Nombre (mín 6 caracteres)</label>
+            <input type="text" id="name" required minlength="6" />
+            <label>Email</label>
+            <input type="email" id="email" required />
+            <label>ITSon ID (6 dígitos)</label>
+            <input type="text" id="itsonId" required pattern="[0-9]{6}" />
+            <label>Contraseña (mín 6)</label>
+            <input type="password" id="password" required minlength="6" />
+            <button type="submit">Registrar</button>
         </form>
         <p>¿Ya tienes cuenta? <a href="login.html">Iniciar sesión</a></p>
         <div id="msg"></div>
@@ -41,19 +41,25 @@
         const password = document.getElementById('password').value;
 
         try {
-        const res = await fetch(`${API_BASE}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, itsonId, password })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Error en registro');
-        showMsg('Registro exitoso. Redirigiendo al login...');
-        setTimeout(() => location.href = 'login.html', 1000);
+            const res = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, itsonId, password })
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || 'Error en registro');
+            }
+            
+            showMsg('Registro exitoso. Redirigiendo al login...');
+            setTimeout(() => location.href = 'login.html', 1000);
+            
         } catch (err) {
-        showMsg(err.message, true);
+            showMsg(err.message, true);
         }
     });
     </script>
-    </body>
-    </html>
+</body>
+</html>

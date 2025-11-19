@@ -1,79 +1,93 @@
 <!DOCTYPE html>
-    <html lang="es">
-    <head>
+<html lang="es">
+<head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Backoffice - Home</title>
     <link rel="stylesheet" href="styles.css">
-    </head>
-    <body>
+</head>
+<body>
     <header class="topbar">
         <h2>Backoffice - Proyectos</h2>
         <div>
-        <span id="userName"></span>
-        <button id="logoutBtn">Cerrar sesión</button>
+            <span id="userName"></span>
+            <button id="logoutBtn">Cerrar sesión</button>
         </div>
     </header>
 
     <main class="container">
         <section class="controls">
-        <button id="btnShowCreate">Agregar proyecto</button>
+            <button id="btnShowCreate">Agregar proyecto</button>
         </section>
 
         <section id="projectsPanel" class="projects-panel">
-        <!-- Plantillas de proyectos cargadas dinámicamente aquí -->
+
         </section>
 
-        <!-- Formulario crear/editar -->
         <aside id="formAside" class="form-aside hidden">
-        <h3 id="formTitle">Agregar proyecto</h3>
-        <form id="projectForm">
-            <input type="hidden" id="projectId" />
-            <label>Título</label>
-            <input id="title" required />
-            <label>Descripción</label>
-            <textarea id="description" required></textarea>
-            <label>Tecnologías (separadas por comas)</label>
-            <input id="technologies" />
-            <label>Repositorio (URL)</label>
-            <input id="repository" />
-            <label>Imágenes (URLs separadas por comas)</label>
-            <input id="images" />
-            <div class="form-actions">
-            <button type="submit" id="saveBtn">Guardar</button>
-            <button type="button" id="cancelBtn">Cancelar</button>
-            </div>
-        </form>
-        <div id="formMsg"></div>
+            <h3 id="formTitle">Agregar proyecto</h3>
+            <form id="projectForm">
+                <input type="hidden" id="projectId" />
+                <label>Título</label>
+                <input id="title" required />
+                <label>Descripción</label>
+                <textarea id="description" required></textarea>
+                <label>Tecnologías (separadas por comas)</label>
+                <input id="technologies" />
+                <label>Repositorio (URL)</label>
+                <input id="repository" />
+                <label>Imágenes (URLs separadas por comas)</label>
+                <input id="images" />
+                <div class="form-actions">
+                    <button type="submit" id="saveBtn">Guardar</button>
+                    <button type="button" id="cancelBtn">Cancelar</button>
+                </div>
+            </form>
+            <div id="formMsg"></div>
         </aside>
     </main>
 
     <script>
     const API_BASE = "https://portfolio-api-three-black.vercel.app/api/v1";
 
-    // --- UTIL ---
-    function getToken() { return localStorage.getItem('authToken'); }
-    function getUser() { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } }
+    function getToken() { 
+        return localStorage.getItem('authToken'); 
+    }
+    
+    function getUser() { 
+        try { 
+            return JSON.parse(localStorage.getItem('user')); 
+        } catch { 
+            return null; 
+        } 
+    }
+    
     function showFormMsg(text, isError=false) {
         const d = document.getElementById('formMsg');
         d.textContent = text;
         d.style.color = isError ? 'crimson' : 'green';
     }
 
-    // --- PROTECCION RUTA ---
+    function redirectToLogin() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        alert('Sesión inválida o expirada. Por favor, inicia sesión nuevamente.');
+        location.href = 'login.html';
+    }
+
     (function protect() {
         const token = getToken();
         if (!token) {
-        alert('Acceso denegado. Redirigiendo al login...');
-        location.href = 'login.html';
-        return;
+            alert('Acceso denegado. Redirigiendo al login...');
+            location.href = 'login.html';
+            return;
         }
-        // mostrar nombre
+
         const u = getUser();
         document.getElementById('userName').textContent = u ? u.name : '';
     })();
 
-    // --- ELEMENTOS DOM ---
+
     const projectsPanel = document.getElementById('projectsPanel');
     const btnShowCreate = document.getElementById('btnShowCreate');
     const formAside = document.getElementById('formAside');
@@ -81,60 +95,91 @@
     const cancelBtn = document.getElementById('cancelBtn');
     const projectIdInput = document.getElementById('projectId');
 
-    // --- CARGAR PROYECTOS ---
+
     async function fetchProjects() {
         const token = getToken();
+        if (!token) {
+            redirectToLogin();
+            return;
+        }
+
         try {
-        const res = await fetch(`${API_BASE}/projects`, {
-            headers: { 'auth-token': token }
-        });
-        if (!res.ok) throw new Error('No se pudieron obtener proyectos');
-        const projects = await res.json();
-        renderProjects(projects);
+            const res = await fetch(`${API_BASE}/projects`, {
+                headers: { 
+                    'auth-token': token 
+                }
+            });
+            
+            if (res.status === 401 || res.status === 403) {
+                redirectToLogin();
+                return;
+            }
+            
+            if (!res.ok) {
+                throw new Error('No se pudieron obtener proyectos');
+            }
+            
+            const projects = await res.json();
+            renderProjects(projects);
+            
         } catch (err) {
-        projectsPanel.innerHTML = `<p class="error">Error cargando proyectos: ${err.message}</p>`;
+            projectsPanel.innerHTML = `<p class="error">Error cargando proyectos: ${err.message}</p>`;
         }
     }
 
     function renderProjects(projects) {
-        if (!projects || projects.length === 0) {
+    if (!projects || projects.length === 0) {
         projectsPanel.innerHTML = '<p>No hay proyectos aún.</p>';
         return;
-        }
-        projectsPanel.innerHTML = '';
-        projects.forEach(p => {
+    }
+    
+    projectsPanel.innerHTML = '';
+    projects.forEach(p => {
         const card = document.createElement('article');
         card.className = 'project-card';
+        
+        let imagesHTML = '';
+        if (p.images && p.images.length > 0) {
+            imagesHTML = '<div class="project-images">';
+            p.images.forEach(img => {
+                imagesHTML += `<img src="${escapeHtml(img)}" alt="Imagen del proyecto" style="max-width: 200px; margin: 5px;" />`;
+            });
+            imagesHTML += '</div>';
+        }
+        
+        let repoHTML = '';
+        if (p.repository) {
+            repoHTML = `<p><a href="${escapeHtml(p.repository)}" target="_blank" rel="noopener noreferrer">🔗 Ver repositorio</a></p>`;
+        }
+        
         card.innerHTML = `
             <h4>${escapeHtml(p.title)}</h4>
             <p>${escapeHtml(p.description)}</p>
-            <p><small>Tecnologías: ${ (p.technologies || []).join(', ') }</small></p>
-            <p><small>ID: ${p._id}</small></p>
+            <p><small>Tecnologías: ${(p.technologies || []).join(', ')}</small></p>
+            ${repoHTML}
+            ${imagesHTML}
             <div class="card-actions">
-            <button data-id="${p._id}" class="editBtn">Editar</button>
-            <button data-id="${p._id}" class="delBtn">Eliminar</button>
+                <button data-id="${p._id}" class="editBtn">Editar</button>
+                <button data-id="${p._id}" class="delBtn">Eliminar</button>
             </div>
         `;
         projectsPanel.appendChild(card);
-        });
+    });
 
-        // agregar listeners
-        document.querySelectorAll('.editBtn').forEach(b => b.addEventListener('click', onEdit));
-        document.querySelectorAll('.delBtn').forEach(b => b.addEventListener('click', onDelete));
-    }
+    document.querySelectorAll('.editBtn').forEach(b => b.addEventListener('click', onEdit));
+    document.querySelectorAll('.delBtn').forEach(b => b.addEventListener('click', onDelete));
+}
 
-    // --- ESCAPAR HTML para seguridad básica ---
     function escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
     }
 
-    // --- EVENTOS CRUD ---
     btnShowCreate.addEventListener('click', () => {
         projectIdInput.value = '';
         projectForm.reset();
@@ -145,88 +190,181 @@
 
     cancelBtn.addEventListener('click', () => {
         formAside.classList.add('hidden');
+        showFormMsg('');
     });
 
     projectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
         const token = getToken();
         const user = getUser();
-        if (!token || !user) { alert('Sesión inválida'); location.href = 'login.html'; return; }
+        
+        if (!token || !user) { 
+            redirectToLogin();
+            return; 
+        }
 
         const id = projectIdInput.value;
         const title = document.getElementById('title').value.trim();
         const description = document.getElementById('description').value.trim();
-        const technologies = document.getElementById('technologies').value.split(',').map(s=>s.trim()).filter(Boolean);
+        const technologies = document.getElementById('technologies').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
         const repository = document.getElementById('repository').value.trim() || undefined;
-        const images = document.getElementById('images').value.split(',').map(s=>s.trim()).filter(Boolean);
+        const images = document.getElementById('images').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
 
-        const payload = { title, description, userId: user.id, technologies, repository, images };
+
+        const payload = { 
+            title, 
+            description, 
+            technologies, 
+            repository, 
+            images 
+        };
 
         try {
-        let res, data;
-        if (id) {
-            res = await fetch(`${API_BASE}/projects/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'auth-token': token },
-            body: JSON.stringify(payload)
-            });
-            data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Error al actualizar');
-            showFormMsg('Proyecto actualizado');
-        } else {
-            res = await fetch(`${API_BASE}/projects`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'auth-token': token },
-            body: JSON.stringify(payload)
-            });
-            data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Error al crear');
-            showFormMsg('Proyecto creado');
-        }
-        setTimeout(() => { formAside.classList.add('hidden'); fetchProjects(); }, 500);
+            let res, data;
+            
+            if (id) {
+                // ACTUALIZAR (PUT)
+                res = await fetch(`${API_BASE}/projects/${id}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'auth-token': token 
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.status === 401 || res.status === 403) {
+                    redirectToLogin();
+                    return;
+                }
+                
+                data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.message || 'Error al actualizar');
+                }
+                
+                showFormMsg('Proyecto actualizado');
+                
+            } else {
+                // CREAR (POST)
+                res = await fetch(`${API_BASE}/projects`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'auth-token': token 
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.status === 401 || res.status === 403) {
+                    redirectToLogin();
+                    return;
+                }
+                
+                data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.message || 'Error al crear');
+                }
+                
+                showFormMsg('Proyecto creado');
+            }
+            
+            setTimeout(() => { 
+                formAside.classList.add('hidden'); 
+                fetchProjects(); 
+            }, 500);
+            
         } catch (err) {
-        showFormMsg(err.message, true);
+            showFormMsg(err.message, true);
         }
     });
 
     async function onEdit(e) {
         const id = e.currentTarget.dataset.id;
         const token = getToken();
+        
+        if (!token) {
+            redirectToLogin();
+            return;
+        }
+        
         try {
-        const res = await fetch(`${API_BASE}/projects/${id}`, {
-            headers: { 'auth-token': token }
-        });
-        if (!res.ok) throw new Error('No se encontró el proyecto');
-        const p = await res.json();
-        // rellenar formulario
-        projectIdInput.value = p._id;
-        document.getElementById('title').value = p.title || '';
-        document.getElementById('description').value = p.description || '';
-        document.getElementById('technologies').value = (p.technologies || []).join(', ');
-        document.getElementById('repository').value = p.repository || '';
-        document.getElementById('images').value = (p.images || []).join(', ');
-        document.getElementById('formTitle').textContent = 'Editar proyecto';
-        formAside.classList.remove('hidden');
-        showFormMsg('');
+            const res = await fetch(`${API_BASE}/projects/${id}`, {
+                headers: { 
+                    'auth-token': token 
+                }
+            });
+
+            if (res.status === 401 || res.status === 403) {
+                redirectToLogin();
+                return;
+            }
+
+            if (!res.ok) {
+                throw new Error('No se encontró el proyecto');
+            }
+            
+            const p = await res.json();
+
+            projectIdInput.value = p._id;
+            document.getElementById('title').value = p.title || '';
+            document.getElementById('description').value = p.description || '';
+            document.getElementById('technologies').value = (p.technologies || []).join(', ');
+            document.getElementById('repository').value = p.repository || '';
+            document.getElementById('images').value = (p.images || []).join(', ');
+            document.getElementById('formTitle').textContent = 'Editar proyecto';
+            formAside.classList.remove('hidden');
+            showFormMsg('');
+            
         } catch (err) {
-        alert('Error al obtener proyecto: ' + err.message);
+            alert('Error al obtener proyecto: ' + err.message);
         }
     }
 
     async function onDelete(e) {
         const id = e.currentTarget.dataset.id;
+        
         if (!confirm('¿Eliminar proyecto?')) return;
+        
         const token = getToken();
+        
+        if (!token) {
+            redirectToLogin();
+            return;
+        }
+        
         try {
-        const res = await fetch(`${API_BASE}/projects/${id}`, {
-            method: 'DELETE',
-            headers: { 'auth-token': token }
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Error al eliminar');
-        fetchProjects();
+            const res = await fetch(`${API_BASE}/projects/${id}`, {
+                method: 'DELETE',
+                headers: { 
+                    'auth-token': token 
+                }
+            });
+            
+            if (res.status === 401 || res.status === 403) {
+                redirectToLogin();
+                return;
+            }
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || 'Error al eliminar');
+            }
+            
+            fetchProjects();
+            
         } catch (err) {
-        alert('Error al eliminar: ' + err.message);
+            alert('Error al eliminar: ' + err.message);
         }
     }
 
@@ -239,6 +377,6 @@
 
     // carga inicial
     fetchProjects();
-    </script>
-    </body>
-    </html>
+</script>
+</body>
+</html>
